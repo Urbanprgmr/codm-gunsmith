@@ -3,83 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Data Entry</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>CODM Gunsmith Database</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            background-color: #f4f4f4;
-            padding: 20px;
-        }
-        h2 {
-            color: #333;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            display: inline-block;
+            margin: 30px;
         }
         input, button {
-            display: block;
-            margin: 10px auto;
-            padding: 10px;
-            width: 90%;
-        }
-        button {
-            background: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #218838;
+            margin: 10px;
+            padding: 8px;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
 
-    <h2>Enter Data into Supabase</h2>
-    <form id="dataForm">
-        <input type="text" id="name" placeholder="Enter Name" required>
-        <input type="number" id="age" placeholder="Enter Age" required>
-        <button type="submit">Submit</button>
-    </form>
+    <h2>CODM Gunsmith Database</h2>
+
+    <h3>Add Gun</h3>
+    <input type="text" id="gunName" placeholder="Enter Gun Name">
+    <button onclick="addGun()">Add Gun</button>
+
+    <h3>Add Category</h3>
+    <input type="text" id="gunNameCategory" placeholder="Gun Name">
+    <input type="text" id="categoryName" placeholder="Enter Category Name">
+    <button onclick="addCategory()">Add Category</button>
+
+    <h3>Add Attachment</h3>
+    <input type="text" id="gunNameAttachment" placeholder="Gun Name">
+    <input type="text" id="categoryNameAttachment" placeholder="Category Name">
+    <input type="text" id="attachmentName" placeholder="Enter Attachment Name">
+    <button onclick="addAttachment()">Add Attachment</button>
 
     <script>
-        // Supabase Configuration
-        const SUPABASE_URL = "https://cyyziuyjvmvxulfnrqsc.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5eXppdXlqdm12eHVsZm5ycXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDY0NzcsImV4cCI6MjA1NzcyMjQ3N30.dJG2D1pxkHH2-dGPoypoyeR9dA9w5c-6ljmizNGPIEU";
+        const backendURL = "https://6de8a68d-b10d-4171-9cbd-a539372265ee-00-3bgse40vcitg6.picard.replit.dev"; // Replace with your actual Replit backend URL
 
-        // Initialize Supabase Client
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        async function addGun() {
+            const gunName = document.getElementById("gunName").value;
+            if (!gunName) return alert("Enter a gun name!");
 
-        // Form Submission
-        document.getElementById("dataForm").addEventListener("submit", async function(e) {
-            e.preventDefault();
+            const response = await fetch(`${backendURL}/addGun`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ gunName })
+            });
 
-            let name = document.getElementById("name").value;
-            let age = document.getElementById("age").value;
+            alert(await response.text());
+        }
 
-            console.log("Attempting to save:", { name, age });
+        async function addCategory() {
+            const gunName = document.getElementById("gunNameCategory").value;
+            const categoryName = document.getElementById("categoryName").value;
+            if (!gunName || !categoryName) return alert("Enter gun and category names!");
 
-            try {
-                let { data, error } = await supabase
-                    .from("users")
-                    .insert([{ name: name, age: parseInt(age) }]);
+            const response = await fetch(`${backendURL}/addCategory`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ gunName, categoryName })
+            });
 
-                if (error) throw error;
+            alert(await response.text());
+        }
 
-                console.log("Data added successfully:", data);
-                alert("Data added successfully!");
-                document.getElementById("dataForm").reset();
-            } catch (error) {
-                console.error("Error adding data:", error);
-                alert("Error saving data: " + error.message);
-            }
-        });
+        async function addAttachment() {
+            const gunName = document.getElementById("gunNameAttachment").value;
+            const categoryName = document.getElementById("categoryNameAttachment").value;
+            const attachmentName = document.getElementById("attachmentName").value;
+            if (!gunName || !categoryName || !attachmentName) return alert("Enter gun, category, and attachment names!");
+
+            const response = await fetch(`${backendURL}/addAttachment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ gunName, categoryName, attachmentName })
+            });
+
+            alert(await response.text());
+        }
     </script>
 
 </body>
