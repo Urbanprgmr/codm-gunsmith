@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Data Entry</title>
-    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js"></script>
+    <title>Supabase Data Entry</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,7 +41,7 @@
 </head>
 <body>
 
-    <h2>Enter Data into Firebase</h2>
+    <h2>Enter Data into Supabase</h2>
     <form id="dataForm">
         <input type="text" id="name" placeholder="Enter Name" required>
         <input type="number" id="age" placeholder="Enter Age" required>
@@ -50,19 +49,12 @@
     </form>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDNXOggjyHTmQ4CGAheu34RR-7H_uKPGJY",
-            authDomain: "test-data-4f349.firebaseapp.com",
-            projectId: "test-data-4f349",
-            storageBucket: "test-data-4f349.firebasestorage.app",
-            messagingSenderId: "33477079144",
-            appId: "1:33477079144:web:bda240c48cecd7699acbdd"
-        };
+        // Supabase Configuration
+        const SUPABASE_URL = "https://cyyziuyjvmvxulfnrqsc.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5eXppdXlqdm12eHVsZm5ycXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDY0NzcsImV4cCI6MjA1NzcyMjQ3N30.dJG2D1pxkHH2-dGPoypoyeR9dA9w5c-6ljmizNGPIEU";
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Initialize Supabase Client
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Form Submission
         document.getElementById("dataForm").addEventListener("submit", async function(e) {
@@ -71,17 +63,21 @@
             let name = document.getElementById("name").value;
             let age = document.getElementById("age").value;
 
+            console.log("Attempting to save:", { name, age });
+
             try {
-                await db.collection("users").add({
-                    name: name,
-                    age: parseInt(age),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                let { data, error } = await supabase
+                    .from("users")
+                    .insert([{ name: name, age: parseInt(age) }]);
+
+                if (error) throw error;
+
+                console.log("Data added successfully:", data);
                 alert("Data added successfully!");
                 document.getElementById("dataForm").reset();
             } catch (error) {
-                console.error("Error adding document: ", error);
-                alert("Error saving data.");
+                console.error("Error adding data:", error);
+                alert("Error saving data: " + error.message);
             }
         });
     </script>
