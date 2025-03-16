@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CODM Gunsmith</title>
+  <title>Firestore Data Entry</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,35 +14,32 @@
       padding: 10px;
       width: 200px;
     }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
     .success {
       color: green;
     }
     .error {
       color: red;
     }
+    .data-entry, .data-display {
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>CODM Gunsmith</h1>
+  <h1>Firestore Data Entry</h1>
 
-    <!-- Form to Add a Gun -->
-    <div class="form-group">
-      <h2>Add a Gun</h2>
-      <input type="text" id="gunName" placeholder="Gun Name" required>
-      <input type="text" id="attachmentCategories" placeholder="Attachment Categories (comma-separated)" required>
-      <button onclick="addGun()">Add Gun</button>
-    </div>
-
-    <!-- Display Success/Error Messages -->
+  <!-- Data Entry Form -->
+  <div class="data-entry">
+    <h2>Enter Data</h2>
+    <input type="text" id="dataInput" placeholder="Enter some data" required>
+    <button onclick="addData()">Add Data</button>
     <div id="message"></div>
+  </div>
+
+  <!-- Data Display -->
+  <div class="data-display">
+    <h2>Data in Firestore</h2>
+    <ul id="dataList"></ul>
   </div>
 
   <!-- Firebase SDK -->
@@ -66,35 +63,48 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Function to Add a Gun
-    function addGun() {
-      const gunName = document.getElementById("gunName").value;
-      const categories = document.getElementById("attachmentCategories").value;
+    // Function to Add Data
+    function addData() {
+      const dataInput = document.getElementById("dataInput").value;
 
-      console.log("Gun Name:", gunName); // Debugging
-      console.log("Categories:", categories); // Debugging
-
-      if (!gunName || !categories) {
-        showMessage("Please fill in all fields.", "error");
+      if (!dataInput) {
+        showMessage("Please enter some data.", "error");
         return;
       }
 
-      const categoriesArray = categories.split(",").map((cat) => cat.trim());
-
-      db.collection("Guns")
+      db.collection("Data")
         .add({
-          name: gunName,
-          attachmentCategories: categoriesArray,
+          content: dataInput,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         })
-        .then((docRef) => {
-          console.log("Gun added with ID:", docRef.id); // Debugging
-          showMessage(`Gun added with ID: ${docRef.id}`, "success");
-          document.getElementById("gunName").value = "";
-          document.getElementById("attachmentCategories").value = "";
+        .then(() => {
+          showMessage("Data added successfully!", "success");
+          document.getElementById("dataInput").value = "";
+          fetchData(); // Refresh the data list
         })
         .catch((error) => {
-          console.error("Error adding gun:", error); // Debugging
-          showMessage(`Error adding gun: ${error.message}`, "error");
+          showMessage(`Error adding data: ${error.message}`, "error");
+        });
+    }
+
+    // Function to Fetch and Display Data
+    function fetchData() {
+      const dataList = document.getElementById("dataList");
+      dataList.innerHTML = ""; // Clear the list
+
+      db.collection("Data")
+        .orderBy("timestamp", "desc") // Sort by timestamp
+        .get()
+        .then((querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const listItem = document.createElement("li");
+            listItem.textContent = data.content;
+            dataList.appendChild(listItem);
+          });
+        })
+        .catch((error) => {
+          showMessage(`Error fetching data: ${error.message}`, "error");
         });
     }
 
@@ -104,6 +114,9 @@
       messageDiv.textContent = message;
       messageDiv.className = type;
     }
+
+    // Fetch data when the page loads
+    fetchData();
   </script>
 </body>
 </html>
