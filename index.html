@@ -1,117 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firestore Data Entry</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    input, button {
-      margin: 5px;
-      padding: 10px;
-      width: 200px;
-    }
-    .success {
-      color: green;
-    }
-    .error {
-      color: red;
-    }
-    .data-entry, .data-display {
-      margin-bottom: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Data Entry</title>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+        input, button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: 90%;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+    </style>
 </head>
 <body>
-  <h1>Firestore Data Entry</h1>
 
-  <!-- Data Entry Form -->
-  <div class="data-entry">
-    <h2>Enter Data</h2>
-    <input type="text" id="dataInput" placeholder="Enter some data" required>
-    <button onclick="addData()">Add Data</button>
-    <div id="message"></div>
-  </div>
+    <h2>Enter Data into Firebase</h2>
+    <form id="dataForm">
+        <input type="text" id="name" placeholder="Enter Name" required>
+        <input type="number" id="age" placeholder="Enter Age" required>
+        <button type="submit">Submit</button>
+    </form>
 
-  <!-- Data Display -->
-  <div class="data-display">
-    <h2>Data in Firestore</h2>
-    <ul id="dataList"></ul>
-  </div>
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNXOggjyHTmQ4CGAheu34RR-7H_uKPGJY",
+            authDomain: "test-data-4f349.firebaseapp.com",
+            projectId: "test-data-4f349",
+            storageBucket: "test-data-4f349.firebasestorage.app",
+            messagingSenderId: "33477079144",
+            appId: "1:33477079144:web:bda240c48cecd7699acbdd"
+        };
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    // Import the functions you need from the Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDNXOggjyHTmQ4CGAheu34RR-7H_uKPGJY",
-      authDomain: "test-data-4f349.firebaseapp.com",
-      projectId: "test-data-4f349",
-      storageBucket: "test-data-4f349.firebasestorage.app",
-      messagingSenderId: "33477079144",
-      appId: "1:33477079144:web:bda240c48cecd7699acbdd"
-    };
+        // Form Submission
+        document.getElementById("dataForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+            let name = document.getElementById("name").value;
+            let age = document.getElementById("age").value;
 
-    // Function to Add Data
-    async function addData() {
-      const dataInput = document.getElementById("dataInput").value;
-
-      if (!dataInput) {
-        showMessage("Please enter some data.", "error");
-        return;
-      }
-
-      try {
-        await addDoc(collection(db, "Data"), {
-          content: dataInput,
-          timestamp: serverTimestamp(),
+            try {
+                await db.collection("users").add({
+                    name: name,
+                    age: parseInt(age),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("Data added successfully!");
+                document.getElementById("dataForm").reset();
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("Error saving data.");
+            }
         });
-        showMessage("Data added successfully!", "success");
-        document.getElementById("dataInput").value = "";
-        fetchData(); // Refresh the data list
-      } catch (error) {
-        showMessage(`Error adding data: ${error.message}`, "error");
-      }
-    }
+    </script>
 
-    // Function to Fetch and Display Data
-    async function fetchData() {
-      const dataList = document.getElementById("dataList");
-      dataList.innerHTML = ""; // Clear the list
-
-      try {
-        const q = query(collection(db, "Data"), orderBy("timestamp", "desc"));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const listItem = document.createElement("li");
-          listItem.textContent = data.content;
-          dataList.appendChild(listItem);
-        });
-      } catch (error) {
-        showMessage(`Error fetching data: ${error.message}`, "error");
-      }
-    }
-
-    // Function to Display Messages
-    function showMessage(message, type) {
-      const messageDiv = document.getElementById("message");
-      messageDiv.textContent = message;
-      messageDiv.className = type;
-    }
-
-    // Fetch data when the page loads
-    fetchData();
-  </script>
 </body>
 </html>
