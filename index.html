@@ -41,15 +41,6 @@
       <button onclick="addGun()">Add Gun</button>
     </div>
 
-    <!-- Form to Add Attachments -->
-    <div class="form-group">
-      <h2>Add Attachments</h2>
-      <input type="text" id="gunId" placeholder="Gun ID" required>
-      <input type="text" id="category" placeholder="Category" required>
-      <input type="text" id="attachments" placeholder="Attachments (comma-separated)" required>
-      <button onclick="addAttachments()">Add Attachments</button>
-    </div>
-
     <!-- Display Success/Error Messages -->
     <div id="message"></div>
   </div>
@@ -80,6 +71,9 @@
       const gunName = document.getElementById("gunName").value;
       const categories = document.getElementById("attachmentCategories").value;
 
+      console.log("Gun Name:", gunName); // Debugging
+      console.log("Categories:", categories); // Debugging
+
       if (!gunName || !categories) {
         showMessage("Please fill in all fields.", "error");
         return;
@@ -93,41 +87,14 @@
           attachmentCategories: categoriesArray,
         })
         .then((docRef) => {
+          console.log("Gun added with ID:", docRef.id); // Debugging
           showMessage(`Gun added with ID: ${docRef.id}`, "success");
           document.getElementById("gunName").value = "";
           document.getElementById("attachmentCategories").value = "";
         })
         .catch((error) => {
+          console.error("Error adding gun:", error); // Debugging
           showMessage(`Error adding gun: ${error.message}`, "error");
-        });
-    }
-
-    // Function to Add Attachments
-    function addAttachments() {
-      const gunId = document.getElementById("gunId").value;
-      const category = document.getElementById("category").value;
-      const attachments = document.getElementById("attachments").value;
-
-      if (!gunId || !category || !attachments) {
-        showMessage("Please fill in all fields.", "error");
-        return;
-      }
-
-      const attachmentsArray = attachments.split(",").map((att) => att.trim());
-
-      db.collection(`Guns/${gunId}/Attachments`)
-        .doc(category)
-        .set({
-          attachments: attachmentsArray,
-        })
-        .then(() => {
-          showMessage(`Attachments added for ${category}`, "success");
-          document.getElementById("gunId").value = "";
-          document.getElementById("category").value = "";
-          document.getElementById("attachments").value = "";
-        })
-        .catch((error) => {
-          showMessage(`Error adding attachments: ${error.message}`, "error");
         });
     }
 
