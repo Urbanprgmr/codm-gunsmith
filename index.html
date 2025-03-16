@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CODM Gunsmith</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    input, button {
+      margin: 5px;
+      padding: 10px;
+      width: 200px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CODM Gunsmith</h1>
+
+    <!-- Form to Add a Gun -->
+    <div class="form-group">
+      <h2>Add a Gun</h2>
+      <input type="text" id="gunName" placeholder="Gun Name" required>
+      <input type="text" id="attachmentCategories" placeholder="Attachment Categories (comma-separated)" required>
+      <button onclick="addGun()">Add Gun</button>
+    </div>
+
+    <!-- Form to Add Attachments -->
+    <div class="form-group">
+      <h2>Add Attachments</h2>
+      <input type="text" id="gunId" placeholder="Gun ID" required>
+      <input type="text" id="category" placeholder="Category" required>
+      <input type="text" id="attachments" placeholder="Attachments (comma-separated)" required>
+      <button onclick="addAttachments()">Add Attachments</button>
+    </div>
+
+    <!-- Display Success/Error Messages -->
+    <div id="message"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+
+  <script>
+    // Your Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDh5yKUa5I7duEF7iYXam6lDg0ZSkF88xE",
+      authDomain: "random-facts-f6da1.firebaseapp.com",
+      databaseURL: "https://random-facts-f6da1-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "random-facts-f6da1",
+      storageBucket: "random-facts-f6da1.firebasestorage.app",
+      messagingSenderId: "607017938254",
+      appId: "1:607017938254:web:a8b8eee7e257e3701d821f",
+      measurementId: "G-5K4LN3322Z"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Function to Add a Gun
+    function addGun() {
+      const gunName = document.getElementById("gunName").value;
+      const categories = document.getElementById("attachmentCategories").value;
+
+      if (!gunName || !categories) {
+        showMessage("Please fill in all fields.", "error");
+        return;
+      }
+
+      const categoriesArray = categories.split(",").map((cat) => cat.trim());
+
+      db.collection("Guns")
+        .add({
+          name: gunName,
+          attachmentCategories: categoriesArray,
+        })
+        .then((docRef) => {
+          showMessage(`Gun added with ID: ${docRef.id}`, "success");
+          document.getElementById("gunName").value = "";
+          document.getElementById("attachmentCategories").value = "";
+        })
+        .catch((error) => {
+          showMessage(`Error adding gun: ${error.message}`, "error");
+        });
+    }
+
+    // Function to Add Attachments
+    function addAttachments() {
+      const gunId = document.getElementById("gunId").value;
+      const category = document.getElementById("category").value;
+      const attachments = document.getElementById("attachments").value;
+
+      if (!gunId || !category || !attachments) {
+        showMessage("Please fill in all fields.", "error");
+        return;
+      }
+
+      const attachmentsArray = attachments.split(",").map((att) => att.trim());
+
+      db.collection(`Guns/${gunId}/Attachments`)
+        .doc(category)
+        .set({
+          attachments: attachmentsArray,
+        })
+        .then(() => {
+          showMessage(`Attachments added for ${category}`, "success");
+          document.getElementById("gunId").value = "";
+          document.getElementById("category").value = "";
+          document.getElementById("attachments").value = "";
+        })
+        .catch((error) => {
+          showMessage(`Error adding attachments: ${error.message}`, "error");
+        });
+    }
+
+    // Function to Display Messages
+    function showMessage(message, type) {
+      const messageDiv = document.getElementById("message");
+      messageDiv.textContent = message;
+      messageDiv.className = type;
+    }
+  </script>
+</body>
+</html>
