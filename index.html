@@ -43,28 +43,27 @@
   </div>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+  <script type="module">
+    // Import the functions you need from the Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, orderBy, query } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-  <script>
-    // Your Firebase configuration
+    // Your web app's Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyDh5yKUa5I7duEF7iYXam6lDg0ZSkF88xE",
-      authDomain: "random-facts-f6da1.firebaseapp.com",
-      databaseURL: "https://random-facts-f6da1-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "random-facts-f6da1",
-      storageBucket: "random-facts-f6da1.firebasestorage.app",
-      messagingSenderId: "607017938254",
-      appId: "1:607017938254:web:a8b8eee7e257e3701d821f",
-      measurementId: "G-5K4LN3322Z"
+      apiKey: "AIzaSyDNXOggjyHTmQ4CGAheu34RR-7H_uKPGJY",
+      authDomain: "test-data-4f349.firebaseapp.com",
+      projectId: "test-data-4f349",
+      storageBucket: "test-data-4f349.firebasestorage.app",
+      messagingSenderId: "33477079144",
+      appId: "1:33477079144:web:bda240c48cecd7699acbdd"
     };
 
     // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     // Function to Add Data
-    function addData() {
+    async function addData() {
       const dataInput = document.getElementById("dataInput").value;
 
       if (!dataInput) {
@@ -72,40 +71,36 @@
         return;
       }
 
-      db.collection("Data")
-        .add({
+      try {
+        await addDoc(collection(db, "Data"), {
           content: dataInput,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        })
-        .then(() => {
-          showMessage("Data added successfully!", "success");
-          document.getElementById("dataInput").value = "";
-          fetchData(); // Refresh the data list
-        })
-        .catch((error) => {
-          showMessage(`Error adding data: ${error.message}`, "error");
+          timestamp: serverTimestamp(),
         });
+        showMessage("Data added successfully!", "success");
+        document.getElementById("dataInput").value = "";
+        fetchData(); // Refresh the data list
+      } catch (error) {
+        showMessage(`Error adding data: ${error.message}`, "error");
+      }
     }
 
     // Function to Fetch and Display Data
-    function fetchData() {
+    async function fetchData() {
       const dataList = document.getElementById("dataList");
       dataList.innerHTML = ""; // Clear the list
 
-      db.collection("Data")
-        .orderBy("timestamp", "desc") // Sort by timestamp
-        .get()
-        .then((querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const listItem = document.createElement("li");
-            listItem.textContent = data.content;
-            dataList.appendChild(listItem);
-          });
-        })
-        .catch((error) => {
-          showMessage(`Error fetching data: ${error.message}`, "error");
+      try {
+        const q = query(collection(db, "Data"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const listItem = document.createElement("li");
+          listItem.textContent = data.content;
+          dataList.appendChild(listItem);
         });
+      } catch (error) {
+        showMessage(`Error fetching data: ${error.message}`, "error");
+      }
     }
 
     // Function to Display Messages
