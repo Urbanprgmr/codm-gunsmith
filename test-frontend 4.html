@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODM Gunsmith Database</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .delete-btn {
+            background-color: red;
+        }
+        .reject-btn {
+            background-color: #dc3545;
+        }
+        #gunList ul {
+            list-style: none;
+            padding: 0;
+        }
+        #gunList li {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .scraped-data {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .attachment-category {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        .attachment-list {
+            list-style: none;
+            padding-left: 20px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CODM Gunsmith Database</h1>
+
+    <!-- Scraper Section -->
+    <div class="form-group">
+        <h2>Web Scraper</h2>
+        <input type="text" id="scrapeUrl" placeholder="Enter website URL to scrape">
+        <button onclick="scrapeWebsite()">Scrape Data</button>
+        <button onclick="tryTestData()">Try Test Data</button> </div>
+
+    <!-- Scraped Data Review -->
+    <div id="scrapedDataReview"></div>
+
+    <!-- Add Gun -->
+    <div class="form-group">
+        <h2>Add New Gun</h2>
+        <input type="text" id="gunName" placeholder="Enter gun name">
+        <button onclick="addGun()">Add Gun</button>
+    </div>
+
+    <!-- Select Gun & Category for Attachments -->
+    <div class="form-group">
+        <h2>Add Attachments</h2>
+        <label for="selectGun">Select Gun:</label>
+        <select id="selectGun"></select>
+
+        <label for="categoryName">Select Category:</label>
+        <select id="categoryName">
+            <option value="Muzzle">Muzzle</option>
+            <option value="Barrel">Barrel</option>
+            <option value="Stock">Stock</option>
+            <option value="Underbarrel">Underbarrel</option>
+            <option value="Laser">Laser</option>
+            <option value="Optic">Optic</option>
+            <option value="Ammunition">Ammunition</option>
+            <option value="Rear Grip">Rear Grip</option>
+        </select>
+
+        <label for="attachments">Enter Attachments (Comma Separated):</label>
+        <input type="text" id="attachments" placeholder="Example: Monolithic Suppressor, Tactical Suppressor">
+
+        <button onclick="addAttachments()">Add Attachments</button>
+    </div>
+
+    <!-- Gun List -->
+    <div id="gunList">
+        <h2>Existing Guns</h2>
+        <button onclick="refreshGuns()">Refresh List</button>
+        <ul id="guns"></ul>
+    </div>
+
+    <script>
+        const API_URL = 'https://3a16f0ff-7dbb-4016-9d7c-bfd3d4cc3e0c-00-2kwzdz0nk9m9k.janeway.replit.dev';
+
+        // Scrape website function
+        async function scrapeWebsite() {
+            const url = document.getElementById('scrapeUrl').value;
+            if (!url) {
+                alert('Please enter a URL to scrape');
+                return;
+            }
+
+            const reviewSection = document.getElementById('scrapedDataReview');
+            reviewSection.innerHTML = '<div class="loading"></div> Scraping data...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/scrape`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Failed to scrape data');
+
+                if (!data.data || !Array.isArray(data.data)) {
+                    throw new Error('Invalid data format received from server');
+                }
+
+                if (data.data.length === 0) {
+                    reviewSection.innerHTML = '<div>No gun data found on this page. Try a specific weapon page.</div>';
+                    return;
+                }
+
+                displayScrapedData(data.data);
+            } catch (error) {
+                reviewSection.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Try test data if scraping fails
+        async function tryTestData() {
+            const reviewSection = document.getElementById('scrapedDataReview');
+            reviewSection.innerHTML = '<div class="loading"></div> Loading test data...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/scrape/test`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Failed to load test data');
+
+                displayScrapedData(data.data);
+            } catch (error) {
+                reviewSection.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Display scraped data for review
+        function displayScrapedData(guns) {
+            const reviewSection = document.getElementById('scrapedDataReview');
+            reviewSection.innerHTML = '<h2>Review Scraped Data</h2>';
+
+            guns.forEach(gun => {
+                const gunDiv = document.createElement('div');
+                gunDiv.className = 'scraped-data';
+
+                let html = `
+                    <h3>${gun.name}</h3>
+                    <div class="button-group">
+                        <button onclick="approveGun(${JSON.stringify(gun).replace(/"/g, '&quot;')})">Approve</button>
+                        <button class="reject-btn" onclick="rejectGun(this)">Reject</button>
+                    </div>
+                `;
+
+                Object.entries(gun.attachments).forEach(([category, attachments]) => {
+                    html += `
+                        <div class="attachment-category">
+                            <h4>${category}</h4>
+                            <ul class="attachment-list">
+                                ${attachments.map(att => `<li>${att}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                });
+
+                gunDiv.innerHTML = html;
+                reviewSection.appendChild(gunDiv);
+            });
+        }
+
+        // Approve gun data
+        async function approveGun(gun) {
+            try {
+                const response = await fetch(`${API_URL}/api/scrape/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gun })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message);
+
+                alert(`Successfully imported ${gun.name}`);
+                refreshGuns();
+            } catch (error) {
+                alert(`Error approving gun: ${error.message}`);
+            }
+        }
+
+        // Reject gun data
+        function rejectGun(button) {
+            const gunDiv = button.closest('.scraped-data');
+            gunDiv.remove();
+        }
+
+        // Load guns into dropdown
+        async function loadGuns() {
+            const response = await fetch(`${API_URL}/api/guns`);
+            const guns = await response.json();
+
+            const gunSelect = document.getElementById('selectGun');
+            gunSelect.innerHTML = "<option value=''>-- Select Gun --</option>";
+
+            guns.forEach(gun => {
+                const option = document.createElement('option');
+                option.value = gun.name;
+                option.textContent = gun.name;
+                gunSelect.appendChild(option);
+            });
+        }
+
+        // Add a new gun
+        async function addGun() {
+            const gunName = document.getElementById('gunName').value;
+            if (!gunName) return alert("Enter a gun name!");
+
+            const response = await fetch(`${API_URL}/api/guns`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: gunName })
+            });
+
+            if (response.ok) {
+                alert("Gun added successfully!");
+                document.getElementById('gunName').value = '';
+                refreshGuns();
+            } else {
+                alert("Failed to add gun.");
+            }
+        }
+
+        // Add multiple attachments to a selected gun & category
+        async function addAttachments() {
+            const gunName = document.getElementById('selectGun').value;
+            const categoryName = document.getElementById('categoryName').value;
+            const attachmentsInput = document.getElementById('attachments').value;
+
+            if (!gunName) return alert("Select a gun first!");
+            if (!attachmentsInput) return alert("Enter at least one attachment!");
+
+            const attachments = attachmentsInput.split(',').map(att => att.trim()); // Convert input into an array
+
+            for (let attachment of attachments) {
+                await fetch(`${API_URL}/api/guns/${gunName}/attachments`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ category: categoryName, name: attachment })
+                });
+            }
+
+            alert(`Added ${attachments.length} attachments to ${categoryName} of ${gunName}`);
+            document.getElementById('attachments').value = ''; // Clear input field
+        }
+
+        // Fetch all guns and show them
+        async function refreshGuns() {
+            const response = await fetch(`${API_URL}/api/guns`);
+            const guns = await response.json();
+
+            const gunList = document.getElementById('guns');
+            gunList.innerHTML = "";
+
+            guns.forEach(gun => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    ${gun.name} 
+                    <button class="delete-btn" onclick="deleteGun('${gun.name}')">Delete</button>
+                `;
+                gunList.appendChild(li);
+            });
+
+            // Reload dropdown
+            loadGuns();
+        }
+
+        // Delete a gun
+        async function deleteGun(gunName) {
+            if (!confirm(`Are you sure you want to delete ${gunName}?`)) return;
+
+            await fetch(`${API_URL}/api/guns/${gunName}`, { method: "DELETE" });
+
+            alert("Gun deleted successfully!");
+            refreshGuns();
+        }
+
+        // Load guns on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            refreshGuns();
+            loadGuns();
+        });
+    </script>
+
+</body>
+</html>
