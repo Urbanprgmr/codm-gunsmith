@@ -15,6 +15,11 @@
             padding: 8px;
             font-size: 16px;
         }
+        #gunsList {
+            margin-top: 20px;
+            text-align: left;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -25,61 +30,44 @@
     <input type="text" id="gunName" placeholder="Enter Gun Name">
     <button onclick="addGun()">Add Gun</button>
 
-    <h3>Add Category</h3>
-    <input type="text" id="gunNameCategory" placeholder="Gun Name">
-    <input type="text" id="categoryName" placeholder="Enter Category Name">
-    <button onclick="addCategory()">Add Category</button>
-
-    <h3>Add Attachment</h3>
-    <input type="text" id="gunNameAttachment" placeholder="Gun Name">
-    <input type="text" id="categoryNameAttachment" placeholder="Category Name">
-    <input type="text" id="attachmentName" placeholder="Enter Attachment Name">
-    <button onclick="addAttachment()">Add Attachment</button>
+    <h3>Available Guns</h3>
+    <button onclick="getGuns()">Refresh Guns List</button>
+    <ul id="gunsList"></ul>
 
     <script>
-        const backendURL = "const API_BASE_URL = 'https://6de8a68d-b10d-4171-9cbd-a539372265ee-00-3bgse40vcitg6.picard.replit.dev';"; // Replace with your actual Replit backend URL
+        const backendURL = "http://localhost:5000"; // Change this if your backend is deployed
 
         async function addGun() {
             const gunName = document.getElementById("gunName").value;
             if (!gunName) return alert("Enter a gun name!");
 
-            const response = await fetch(`${backendURL}/addGun`, {
+            const response = await fetch(`${backendURL}/api/guns`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ gunName })
+                body: JSON.stringify({ name: gunName })
             });
 
-            alert(await response.text());
+            const result = await response.json();
+            alert(result.message || "Gun added successfully!");
+            getGuns(); // Refresh the list
         }
 
-        async function addCategory() {
-            const gunName = document.getElementById("gunNameCategory").value;
-            const categoryName = document.getElementById("categoryName").value;
-            if (!gunName || !categoryName) return alert("Enter gun and category names!");
+        async function getGuns() {
+            const response = await fetch(`${backendURL}/api/guns`);
+            const guns = await response.json();
 
-            const response = await fetch(`${backendURL}/addCategory`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ gunName, categoryName })
+            const list = document.getElementById("gunsList");
+            list.innerHTML = ""; // Clear previous list
+
+            guns.forEach(gun => {
+                const li = document.createElement("li");
+                li.textContent = gun.name;
+                list.appendChild(li);
             });
-
-            alert(await response.text());
         }
 
-        async function addAttachment() {
-            const gunName = document.getElementById("gunNameAttachment").value;
-            const categoryName = document.getElementById("categoryNameAttachment").value;
-            const attachmentName = document.getElementById("attachmentName").value;
-            if (!gunName || !categoryName || !attachmentName) return alert("Enter gun, category, and attachment names!");
-
-            const response = await fetch(`${backendURL}/addAttachment`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ gunName, categoryName, attachmentName })
-            });
-
-            alert(await response.text());
-        }
+        // Load guns on page load
+        getGuns();
     </script>
 
 </body>
