@@ -22,7 +22,7 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input[type="text"] {
+        select, input[type="text"] {
             width: 100%;
             padding: 8px;
             margin-bottom: 10px;
@@ -43,9 +43,6 @@
         }
         .delete-btn {
             background-color: red;
-        }
-        #gunList {
-            margin-top: 20px;
         }
         #gunList ul {
             list-style: none;
@@ -74,13 +71,28 @@
         <button onclick="addGun()">Add Gun</button>
     </div>
 
-    <!-- Add Attachment -->
+    <!-- Select Gun & Category for Attachments -->
     <div class="form-group">
-        <h2>Add Attachment</h2>
-        <input type="text" id="gunNameAttach" placeholder="Gun Name">
-        <input type="text" id="categoryName" placeholder="Category (e.g., Barrel, Muzzle)">
-        <input type="text" id="attachmentName" placeholder="Attachment Name">
-        <button onclick="addAttachment()">Add Attachment</button>
+        <h2>Add Attachments</h2>
+        <label for="selectGun">Select Gun:</label>
+        <select id="selectGun"></select>
+
+        <label for="categoryName">Select Category:</label>
+        <select id="categoryName">
+            <option value="Muzzle">Muzzle</option>
+            <option value="Barrel">Barrel</option>
+            <option value="Stock">Stock</option>
+            <option value="Underbarrel">Underbarrel</option>
+            <option value="Laser">Laser</option>
+            <option value="Optic">Optic</option>
+            <option value="Ammunition">Ammunition</option>
+            <option value="Rear Grip">Rear Grip</option>
+        </select>
+
+        <label for="attachments">Enter Attachments (Comma Separated):</label>
+        <input type="text" id="attachments" placeholder="Example: Monolithic Suppressor, Tactical Suppressor">
+
+        <button onclick="addAttachments()">Add Attachments</button>
     </div>
 
     <!-- Gun List -->
@@ -92,6 +104,22 @@
 
     <script>
         const API_URL = 'https://3a16f0ff-7dbb-4016-9d7c-bfd3d4cc3e0c-00-2kwzdz0nk9m9k.janeway.replit.dev';
+
+        // Load guns into dropdown
+        async function loadGuns() {
+            const response = await fetch(`${API_URL}/api/guns`);
+            const guns = await response.json();
+
+            const gunSelect = document.getElementById('selectGun');
+            gunSelect.innerHTML = "<option value=''>-- Select Gun --</option>";
+
+            guns.forEach(gun => {
+                const option = document.createElement('option');
+                option.value = gun.name;
+                option.textContent = gun.name;
+                gunSelect.appendChild(option);
+            });
+        }
 
         // Add a new gun
         async function addGun() {
@@ -113,49 +141,30 @@
             }
         }
 
-        // Delete a gun
-        async function deleteGun(gunName) {
-            const confirmDelete = confirm(`Are you sure you want to delete ${gunName}?`);
-            if (!confirmDelete) return;
-
-            const response = await fetch(`${API_URL}/api/guns/${gunName}`, { method: "DELETE" });
-
-            if (response.ok) {
-                alert("Gun deleted successfully!");
-                refreshGuns();
-            } else {
-                alert("Failed to delete gun.");
-            }
-        }
-
-        // Add attachment
-        async function addAttachment() {
-            const gunName = document.getElementById('gunNameAttach').value;
+        // Add multiple attachments to a selected gun & category
+        async function addAttachments() {
+            const gunName = document.getElementById('selectGun').value;
             const categoryName = document.getElementById('categoryName').value;
-            const attachmentName = document.getElementById('attachmentName').value;
+            const attachmentsInput = document.getElementById('attachments').value;
 
-            if (!gunName || !categoryName || !attachmentName) {
-                return alert("Enter gun name, category, and attachment name!");
+            if (!gunName) return alert("Select a gun first!");
+            if (!attachmentsInput) return alert("Enter at least one attachment!");
+
+            const attachments = attachmentsInput.split(',').map(att => att.trim()); // Convert input into an array
+
+            for (let attachment of attachments) {
+                await fetch(`${API_URL}/api/guns/${gunName}/attachments`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ category: categoryName, name: attachment })
+                });
             }
 
-            const response = await fetch(`${API_URL}/api/guns/${gunName}/attachments`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ category: categoryName, name: attachmentName })
-            });
-
-            if (response.ok) {
-                alert("Attachment added successfully!");
-                document.getElementById('gunNameAttach').value = '';
-                document.getElementById('categoryName').value = '';
-                document.getElementById('attachmentName').value = '';
-                refreshGuns();
-            } else {
-                alert("Failed to add attachment.");
-            }
+            alert(`Added ${attachments.length} attachments to ${categoryName} of ${gunName}`);
+            document.getElementById('attachments').value = ''; // Clear input field
         }
 
-        // Fetch all guns and their attachments
+        // Fetch all guns and show them
         async function refreshGuns() {
             const response = await fetch(`${API_URL}/api/guns`);
             const guns = await response.json();
@@ -168,30 +177,29 @@
                 li.innerHTML = `
                     ${gun.name} 
                     <button class="delete-btn" onclick="deleteGun('${gun.name}')">Delete</button>
-                    <button onclick="showAttachments('${gun.name}')">View Attachments</button>
                 `;
                 gunList.appendChild(li);
             });
+
+            // Reload dropdown
+            loadGuns();
         }
 
-        // Show attachments for a gun
-        async function showAttachments(gunName) {
-            const response = await fetch(`${API_URL}/api/guns/${gunName}/attachments`);
-            const attachments = await response.json();
+        // Delete a gun
+        async function deleteGun(gunName) {
+            if (!confirm(`Are you sure you want to delete ${gunName}?`)) return;
 
-            let message = `Attachments for ${gunName}:\n`;
-            if (attachments.length === 0) {
-                message += "No attachments found.";
-            } else {
-                attachments.forEach(att => {
-                    message += `\nCategory: ${att.category}, Name: ${att.name}`;
-                });
-            }
-            alert(message);
+            await fetch(`${API_URL}/api/guns/${gunName}`, { method: "DELETE" });
+
+            alert("Gun deleted successfully!");
+            refreshGuns();
         }
 
         // Load guns on page load
-        document.addEventListener("DOMContentLoaded", refreshGuns);
+        document.addEventListener("DOMContentLoaded", () => {
+            refreshGuns();
+            loadGuns();
+        });
     </script>
 
 </body>
