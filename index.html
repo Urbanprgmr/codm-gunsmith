@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gun Data Entry Test</title>
+    <title>CODM Gunsmith Database</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,21 +41,8 @@
         button:hover {
             background-color: #45a049;
         }
-        #message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-        }
-        .success {
-            background-color: #dff0d8;
-            color: #3c763d;
-            border: 1px solid #d6e9c6;
-        }
-        .error {
-            background-color: #f2dede;
-            color: #a94442;
-            border: 1px solid #ebccd1;
+        .delete-btn {
+            background-color: red;
         }
         #gunList {
             margin-top: 20px;
@@ -70,32 +57,33 @@
             background-color: #f8f9fa;
             border-radius: 4px;
             border: 1px solid #ddd;
-        }
-        .debug-info {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
-            display: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     </style>
 </head>
 <body>
-    <h1>Gun Data Entry Test</h1>
 
+    <h1>CODM Gunsmith Database</h1>
+
+    <!-- Add Gun -->
     <div class="form-group">
         <h2>Add New Gun</h2>
-        <label for="gunName">Gun Name:</label>
         <input type="text" id="gunName" placeholder="Enter gun name">
         <button onclick="addGun()">Add Gun</button>
     </div>
 
-    <div id="message"></div>
-    <div id="debug-info" class="debug-info"></div>
+    <!-- Add Attachment -->
+    <div class="form-group">
+        <h2>Add Attachment</h2>
+        <input type="text" id="gunNameAttach" placeholder="Gun Name">
+        <input type="text" id="categoryName" placeholder="Category (e.g., Barrel, Muzzle)">
+        <input type="text" id="attachmentName" placeholder="Attachment Name">
+        <button onclick="addAttachment()">Add Attachment</button>
+    </div>
 
+    <!-- Gun List -->
     <div id="gunList">
         <h2>Existing Guns</h2>
         <button onclick="refreshGuns()">Refresh List</button>
@@ -105,91 +93,106 @@
     <script>
         const API_URL = 'https://3a16f0ff-7dbb-4016-9d7c-bfd3d4cc3e0c-00-2kwzdz0nk9m9k.janeway.replit.dev';
 
-        function showDebug(message) {
-            const debugInfo = document.getElementById('debug-info');
-            const timestamp = new Date().toLocaleTimeString();
-            debugInfo.style.display = 'block';
-            debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
-        }
-
+        // Add a new gun
         async function addGun() {
             const gunName = document.getElementById('gunName').value;
-            if (!gunName) {
-                showMessage('Please enter a gun name', false);
-                return;
-            }
+            if (!gunName) return alert("Enter a gun name!");
 
-            try {
-                showDebug(`Sending request to add gun: ${gunName}`);
-                const response = await fetch(`${API_URL}/api/guns`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ name: gunName })
-                });
+            const response = await fetch(`${API_URL}/api/guns`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: gunName })
+            });
 
-                const data = await response.json();
-                showDebug(`Server response: ${JSON.stringify(data)}`);
-
-                if (response.ok) {
-                    showMessage(data.message, true);
-                    document.getElementById('gunName').value = '';
-                    refreshGuns();
-                } else {
-                    showMessage(data.error?.message || 'Failed to add gun', false);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showDebug(`Error occurred: ${error.message}`);
-                showMessage('Error connecting to server: ' + error.message, false);
+            if (response.ok) {
+                alert("Gun added successfully!");
+                document.getElementById('gunName').value = '';
+                refreshGuns();
+            } else {
+                alert("Failed to add gun.");
             }
         }
 
+        // Delete a gun
+        async function deleteGun(gunName) {
+            const confirmDelete = confirm(`Are you sure you want to delete ${gunName}?`);
+            if (!confirmDelete) return;
+
+            const response = await fetch(`${API_URL}/api/guns/${gunName}`, { method: "DELETE" });
+
+            if (response.ok) {
+                alert("Gun deleted successfully!");
+                refreshGuns();
+            } else {
+                alert("Failed to delete gun.");
+            }
+        }
+
+        // Add attachment
+        async function addAttachment() {
+            const gunName = document.getElementById('gunNameAttach').value;
+            const categoryName = document.getElementById('categoryName').value;
+            const attachmentName = document.getElementById('attachmentName').value;
+
+            if (!gunName || !categoryName || !attachmentName) {
+                return alert("Enter gun name, category, and attachment name!");
+            }
+
+            const response = await fetch(`${API_URL}/api/guns/${gunName}/attachments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ category: categoryName, name: attachmentName })
+            });
+
+            if (response.ok) {
+                alert("Attachment added successfully!");
+                document.getElementById('gunNameAttach').value = '';
+                document.getElementById('categoryName').value = '';
+                document.getElementById('attachmentName').value = '';
+                refreshGuns();
+            } else {
+                alert("Failed to add attachment.");
+            }
+        }
+
+        // Fetch all guns and their attachments
         async function refreshGuns() {
-            try {
-                showDebug('Fetching guns list...');
-                const response = await fetch(`${API_URL}/api/guns`);
+            const response = await fetch(`${API_URL}/api/guns`);
+            const guns = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+            const gunList = document.getElementById('guns');
+            gunList.innerHTML = "";
 
-                const guns = await response.json();
-                showDebug(`Retrieved guns: ${JSON.stringify(guns)}`);
+            guns.forEach(gun => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    ${gun.name} 
+                    <button class="delete-btn" onclick="deleteGun('${gun.name}')">Delete</button>
+                    <button onclick="showAttachments('${gun.name}')">View Attachments</button>
+                `;
+                gunList.appendChild(li);
+            });
+        }
 
-                const gunList = document.getElementById('guns');
-                gunList.innerHTML = '';
+        // Show attachments for a gun
+        async function showAttachments(gunName) {
+            const response = await fetch(`${API_URL}/api/guns/${gunName}/attachments`);
+            const attachments = await response.json();
 
-                if (guns.length === 0) {
-                    gunList.innerHTML = '<li>No guns found</li>';
-                } else {
-                    guns.forEach(gun => {
-                        const li = document.createElement('li');
-                        li.textContent = gun.name;
-                        gunList.appendChild(li);
-                    });
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showDebug(`Error fetching guns: ${error.message}`);
-                showMessage('Error fetching guns: ' + error.message, false);
+            let message = `Attachments for ${gunName}:\n`;
+            if (attachments.length === 0) {
+                message += "No attachments found.";
+            } else {
+                attachments.forEach(att => {
+                    message += `\nCategory: ${att.category}, Name: ${att.name}`;
+                });
             }
+            alert(message);
         }
 
-        function showMessage(text, isSuccess) {
-            const messageDiv = document.getElementById('message');
-            const timestamp = new Date().toLocaleTimeString();
-            messageDiv.textContent = `[${timestamp}] ${text}`;
-            messageDiv.className = isSuccess ? 'success' : 'error';
-            messageDiv.style.display = 'block';
-        }
-
-        // Load guns when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            showDebug('Page loaded, fetching initial gun list...');
-            refreshGuns();
-        });
+        // Load guns on page load
+        document.addEventListener("DOMContentLoaded", refreshGuns);
     </script>
+
 </body>
 </html>
